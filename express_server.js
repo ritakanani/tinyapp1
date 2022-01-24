@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080;  // default port 8080
 
-// //     TEMPLATE    // //
+// //       TEMPLATE      // //
 app.set("view engine", "ejs");  // This tells the Express app to use EJS as its templating engine.
 
 const urlDatabase = {
@@ -10,6 +10,8 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+// //     ROUTE     // //
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -30,6 +32,11 @@ app.get("/set", (req, res) => {
 app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
 });  // a is not defined in this scope, and will result in a reference error when anyone visits URL.
+
+app.get("/urls", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);

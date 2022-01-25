@@ -57,6 +57,12 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  res.redirect("/urls");
+})
+
 // //         for NEW FORM file         // //
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
@@ -65,17 +71,14 @@ app.get("/urls/new", (req, res) => {
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;  
   const shortURL = generateRandomString(6);
-
   urlDatabase[shortURL] = longURL;  
   res.redirect(`urls/${shortURL}`);
-
 });
 
 // //        for SHOW file         // //
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const templateVars = { shortURL, longURL: urlDatabase[shortURL] };
-
   res.render("urls_show", templateVars);
 });
 

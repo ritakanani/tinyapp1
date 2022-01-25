@@ -26,7 +26,6 @@ function generateRandomString(length) {
 
   return result;
 }
-console.log(generateRandomString(6));
 
 
 // //     ROUTE     // //
@@ -64,19 +63,27 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);
-  res.send("ok");
+  const longURL = req.body.longURL;  
+  const shortURL = generateRandomString(6);
+
+  urlDatabase[shortURL] = longURL;  
+  res.redirect(`urls/${shortURL}`);
 
 });
 
 // //        for SHOW file         // //
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const shortURL = req.params.shortURL;
+  const templateVars = { shortURL, longURL: urlDatabase[shortURL] };
+
   res.render("urls_show", templateVars);
 });
 
-
-
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  console.log(longURL);
+  res.redirect(longURL);
+});
 
 
 app.listen(PORT, () => {

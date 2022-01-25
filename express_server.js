@@ -33,9 +33,18 @@ app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
 });  // a is not defined in this scope, and will result in a reference error when anyone visits URL.
 
+
+// //       for INDEX file          // //
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+});
+
+
+// //        for SHOW file         // //
+app.get("/urls/:shortURL", (req, res) => {
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  res.render("urls_show", templateVars);
 });
 
 app.listen(PORT, () => {

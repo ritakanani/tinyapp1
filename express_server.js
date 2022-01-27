@@ -41,10 +41,10 @@ function generateRandomString(length) {
   return result;
 }
 
-function findUserEmail(email) {
-  for (const user in users) {
-    const user_id = users[user];
-    if(email === user_id.email) {
+function findUserEmail(email, users) {
+  for (const user_id in users) {
+    const user= users[user_id];
+    if(email === user.email) {
       return user;
     }
   }
@@ -76,16 +76,6 @@ app.get("/fetch", (req, res) => {
 });  // a is not defined in this scope, and will result in a reference error when anyone visits URL.
 
 
-//         for LOGIN file          // //
-app.get("/login", (req, res) => {
-  res.render("login");
-});
-
-app.post("/login", (req, res) => {
-  res.redirect("/login");
-});
-
-
 // //         for REGISTER file       // // 
 app.get("/register", (req, res) => {
   const user_id = req.cookies["user_id"];
@@ -97,28 +87,47 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {  
   const email = req.body.email;
   const password = req.body.password;
-
   if (!email || !password) {
     return res.status(400).send("Require valid email and password");
   }
 
-  const userEmail = findUserEmail(email);  
-  // console.log(userEmail);
-  if(userEmail) {
+  const user = findUserEmail(email, users);   
+  if(user) {
     return res.status(400).send("Email is already in used");
   }
 
   const user_id = generateRandomString(6);    
-  users[user_id] = { id: user_id, email: req.body.email, password: req.body.password };
+  users[user_id] = { id: user_id, email, password };
   res.cookie("user_id", user_id);
   res.redirect("/urls");  
 });
 
 
+//         for LOGIN file          // //
+app.get("/login", (req, res) => {
+  const user_id = req.cookies["user_id"];
+  const user = users[user_id];
+  const templateVars = { user };
+  res.render("login", templateVars);
+});
+
+
 // //         for HEADER file         // //
-app.post("/login", (req, res) => {    
-  let username = req.body.username;   
-  res.cookie("username", username);
+app.post("/login", (req, res) => {   
+  const email = req.body.email;
+  const password = req.body.password;
+
+  const user = findUserEmail(email, users);   
+  if(!user) {
+    return res.status(403).send("Require valid email");
+  }
+  if (password !== user.password) {
+    return res.status(403).send("Require valid password");
+  }
+
+  const user_id = generateRandomString(6);    
+  users[user_id] = { id: user_id, email, password };
+  res.cookie("user_id", user_id);
   res.redirect("/urls");
 });
 
@@ -143,6 +152,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 })
 
+
 // //         for NEW FORM file         // //
 app.get("/urls/new", (req, res) => {
   const user_id = req.cookies["user_id"];
@@ -157,6 +167,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = longURL;  
   res.redirect(`urls/${shortURL}`);
 });
+
 
 // //        for SHOW file         // //
 app.get("/urls/:shortURL", (req, res) => {

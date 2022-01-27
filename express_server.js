@@ -41,6 +41,15 @@ function generateRandomString(length) {
   return result;
 }
 
+function findUserEmail(email) {
+  for (const user in users) {
+    const user_id = users[user];
+    if(email === user_id.email) {
+      return user;
+    }
+  }
+  return null;
+}
 
 
 
@@ -67,6 +76,16 @@ app.get("/fetch", (req, res) => {
 });  // a is not defined in this scope, and will result in a reference error when anyone visits URL.
 
 
+//         for LOGIN file          // //
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+app.post("/login", (req, res) => {
+  res.redirect("/login");
+});
+
+
 // //         for REGISTER file       // // 
 app.get("/register", (req, res) => {
   const user_id = req.cookies["user_id"];
@@ -76,6 +95,19 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {  
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (!email || !password) {
+    return res.status(400).send("Require valid email and password");
+  }
+
+  const userEmail = findUserEmail(email);  
+  // console.log(userEmail);
+  if(userEmail) {
+    return res.status(400).send("Email is already in used");
+  }
+
   const user_id = generateRandomString(6);    
   users[user_id] = { id: user_id, email: req.body.email, password: req.body.password };
   res.cookie("user_id", user_id);

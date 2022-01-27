@@ -17,8 +17,20 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-function generateRandomString(length) {
-  
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
+
+function generateRandomString(length) {  
   let result = "";
   
   const characters ='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -26,9 +38,10 @@ function generateRandomString(length) {
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
-
   return result;
 }
+
+
 
 
 // //***************** ROUTE  ********************// //
@@ -53,7 +66,24 @@ app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
 });  // a is not defined in this scope, and will result in a reference error when anyone visits URL.
 
-// //         for HEADER file       // //
+
+// //         for REGISTER file       // // 
+app.get("/register", (req, res) => {
+  const user_id = req.cookies["user_id"];
+  const user = users[user_id];
+  const templateVars = { user };
+  res.render("register", templateVars);  
+});
+
+app.post("/register", (req, res) => {  
+  const user_id = generateRandomString(6);    
+  users[user_id] = { id: user_id, email: req.body.email, password: req.body.password };
+  res.cookie("user_id", user_id);
+  res.redirect("/urls");  
+});
+
+
+// //         for HEADER file         // //
 app.post("/login", (req, res) => {    
   let username = req.body.username;   
   res.cookie("username", username);
@@ -61,14 +91,17 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
 
 // //       for INDEX file          // //
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+  // setted cookie for key, user information is passed in users see above register POST method
+  const user_id = req.cookies["user_id"];
+  const user = users[user_id];     // users[key]
+  const templateVars = { urls: urlDatabase, user };
   res.render("urls_index", templateVars);
 });
 
@@ -80,7 +113,9 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // //         for NEW FORM file         // //
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] }
+  const user_id = req.cookies["user_id"];
+  const user = users[user_id];
+  const templateVars = { user };
   res.render("urls_new", templateVars);
 });
 
@@ -94,7 +129,9 @@ app.post("/urls", (req, res) => {
 // //        for SHOW file         // //
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const templateVars = { shortURL, longURL: urlDatabase[shortURL], username: req.cookies["username"] };
+  const user_id = req.cookies["user_id"];
+  const user = users[user_id];
+  const templateVars = { shortURL, longURL: urlDatabase[shortURL], user };
   res.render("urls_show", templateVars);
 });
 

@@ -1,17 +1,24 @@
 const express = require("express");
-const bcrypt = require('bcryptjs');
+const { generateRandomString, findUserByEmail, urlsForUser } = require("./helpers");
 const app = express();
 const PORT = 8080;  // default port 8080
 
 // //       MIDDLEWARE      // //
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+const bcrypt = require('bcryptjs');
+// const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session")
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+// app.use(cookieParser());
 
 // //       TEMPLATE      // //
 app.set("view engine", "ejs");  // This tells the Express app to use EJS as its templating engine.
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ["abcdefg", "123456"]
+}));
 
 const urlDatabase = {
   b6UTxQ: {
@@ -36,39 +43,6 @@ const users = {
     password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 };
-
-function generateRandomString(length) {  
-  let result = "";
-  
-  const characters ='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
-
-function findUserByEmail(currentUserEmail, users) {
-  for (const user_id in users) {
-    const user = users[user_id];
-    if(currentUserEmail === user.email) {
-      return user;
-    }
-  }
-  return null;
-}
-
-function urlsForUser(id) {
-  const urls = {};
-  for (const shortURL in urlDatabase) {    
-    if (urlDatabase[shortURL]["userID"] === id) {
-      urls[shortURL] = urlDatabase[shortURL]["longURL"];      
-    }
-  }
-  return urls;
-}
-
-
 
 // //***************** ROUTE  ********************// //
 app.get("/", (req, res) => {
@@ -95,7 +69,7 @@ app.get("/fetch", (req, res) => {
 
 // //         for REGISTER file       // // 
 app.get("/register", (req, res) => {
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const user = users[user_id];
   const templateVars = { user };
   res.render("register", templateVars);  
@@ -115,14 +89,14 @@ app.post("/register", (req, res) => {
 
   const user_id = generateRandomString(6);    
   users[user_id] = { id: user_id, email, password };
-  res.cookie("user_id", user_id);
+  req.session["user_id"] = user_id;
   res.redirect("/urls");
 });
 
 
 //         for LOGIN file          // //
 app.get("/login", (req, res) => {
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const user = users[user_id];
   const templateVars = { user };
   res.render("login", templateVars);
@@ -144,12 +118,12 @@ app.post("/login", (req, res) => {
 
   const user_id = generateRandomString(6);    
   users[user_id] = { id: user_id, email, password };
-  res.cookie("user_id", user_id);
+  req.session["user_id"] = user_id;
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -157,31 +131,33 @@ app.post("/logout", (req, res) => {
 // //       for INDEX file          // //
 app.get("/urls", (req, res) => {
   // setted cookie for key, user information is passed in users see above register POST method
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const user = users[user_id];     // users[key]
 
-  const urls = urlsForUser(user_id);
-  const templateVars = { urls: urlDatabase, user };
+  if(!user) {
+    return res.redirect("/login");
+  }
+
+  const urls = urlsForUser(user_id, urlDatabase);
+  const templateVars = { urls, user };
   res.render("urls_index", templateVars);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
-  const user_id = req.cookies["user_id"];  
-  const user = findUserByEmail(user_id, users); 
+  const user_id = req.session["user_id"]; 
+
   if(urlDatabase[shortURL].userID !== user_id) {
     return res.status(403).send("You dont own this URL");
   }
-
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 })
 
 
-
 // //         for NEW FORM file         // //
 app.get("/urls/new", (req, res) => {
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const user = users[user_id];
   const templateVars = { user };
 
@@ -192,7 +168,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const longURL = req.body.longURL;  
   const shortURL = generateRandomString(6);
   
@@ -208,7 +184,7 @@ app.post("/urls", (req, res) => {
 // //        for SHOW file         // //
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const user = users[user_id];
   const templateVars = { shortURL, longURL: urlDatabase[shortURL].longURL, user };
   res.render("urls_show", templateVars);
@@ -217,8 +193,8 @@ app.get("/urls/:shortURL", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = req.body.longURL;
-  const user_id = req.cookies["user_id"];
-  const user = findUserByEmail(user_id, users); 
+  const user_id = req.session["user_id"];
+  
   if(urlDatabase[shortURL].userID !== user_id) {
     return res.status(403).send("You can't edit, you dont own this URL");
   }

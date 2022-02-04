@@ -116,9 +116,7 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Require valid password");
   }
 
-  const user_id = generateRandomString(6);    
-  users[user_id] = { id: user_id, email, password };
-  req.session["user_id"] = user_id;
+  req.session["user_id"] = user.id;
   res.redirect("/urls");
 });
 

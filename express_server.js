@@ -129,7 +129,7 @@ app.get("/urls", (req, res) => {
   const user = users[user_id];     // users[key]
 
   if (!user) {
-    return res.redirect("/login");
+    return res.status(403).send("You must be logged in.");
   }
 
   const urls = urlsForUser(user_id, urlDatabase);
@@ -194,10 +194,14 @@ app.get("/urls/:shortURL", (req, res) => {
   if (!user) {
     return res.status(403).send("You must be logged in to view url");
   }
-  
+
   const shortURL = req.params.shortURL;
   if (!urlDatabase[shortURL]) {
     return res.status(404).send("Short url doesn't exit");
+  }
+
+  if (urlDatabase[shortURL].userID !== user_id)  {
+    return res.status(403).send("You can't edit, you don't own this URL");
   }
 
   const templateVars = { shortURL, longURL: urlDatabase[shortURL].longURL, user };
@@ -210,7 +214,7 @@ app.post("/urls/:shortURL", (req, res) => {
   const user_id = req.session["user_id"];
   
   if (urlDatabase[shortURL].userID !== user_id) {
-    return res.status(403).send("You can't edit, you dont own this URL");
+    return res.status(403).send("You can't edit, you don't own this URL");
   }
 
   urlDatabase[shortURL].longURL = longURL;

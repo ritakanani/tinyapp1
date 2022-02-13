@@ -88,7 +88,7 @@ app.post("/register", (req, res) => {
 //         for LOGIN file          // //
 app.get("/login", (req, res) => {
   const user_id = req.session["user_id"];
-  const user = users[user_id];     // users[key]
+  const user = users[user_id];     
 
   if (user) {
     return res.redirect("/urls");
@@ -181,8 +181,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = {
     longURL: longURL,
     userID: user_id
-  };
-  // console.log('app.post("/urls")', urlDatabase)
+  };  
   res.redirect(`urls/${shortURL}`);
 });
 
